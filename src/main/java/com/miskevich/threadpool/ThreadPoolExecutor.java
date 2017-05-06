@@ -24,7 +24,7 @@ public class ThreadPoolExecutor implements Executor{
 
     public synchronized void execute(Runnable task) {
         if (task == null){
-            throw new NullPointerException();
+            throw new NullPointerException("Task can't be NULL");
         }
         if(isStopped){
             throw new IllegalStateException("Thread pool is stopped");
@@ -39,9 +39,6 @@ public class ThreadPoolExecutor implements Executor{
 
     public synchronized void shutdown(){
         isStopped = true;
-        for (ThreadPoolTaskExecutor thread : threads){
-            thread.stop();
-        }
     }
 
     public synchronized List<Runnable> shutdownNow(){
@@ -66,10 +63,6 @@ public class ThreadPoolExecutor implements Executor{
                     task.run();
                 }
             }
-        }
-
-        private synchronized void stop() {
-            Thread.currentThread().interrupt();
         }
     }
 }
