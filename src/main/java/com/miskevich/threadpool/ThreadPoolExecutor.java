@@ -3,12 +3,13 @@ package com.miskevich.threadpool;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class ThreadPoolExecutor implements Executor{
+public class ThreadPoolExecutor implements Executor {
     private final BlockingQueue<Runnable> workQueue;
     private final List<ThreadPoolTaskExecutor> threads = new ArrayList<>();
-    private boolean isStopped = false;
+    private volatile boolean isStopped = false;
 
     public ThreadPoolExecutor(int aliveThreads) {
         this.workQueue = new LinkedBlockingQueue<>(aliveThreads);
@@ -22,18 +23,20 @@ public class ThreadPoolExecutor implements Executor{
         }
     }
 
-    public synchronized void execute(Runnable task) {
-        if (task == null){
-            throw new NullPointerException("Task can't be NULL");
-        }
-        if(isStopped){
-            throw new IllegalStateException("Thread pool is stopped");
-        }
+    public void execute(Runnable task) {
+        synchronized (workQueue){
+            if (task == null){
+                throw new NullPointerException("Task can't be NULL");
+            }
+            if(isStopped){
+                throw new IllegalStateException("Thread pool is stopped");
+            }
 
-        try {
-            workQueue.put(task);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            try {
+                workQueue.put(task);
+                workQueue.notifyAll();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);            }
         }
     }
 
@@ -58,7 +61,14 @@ public class ThreadPoolExecutor implements Executor{
         @Override
         public void run() {
             while (!isStopped){
-                while (null != workQueue.peek()){
+                synchronized (workQueue){
+                    while (workQueue.isEmpty()){
+                        try {
+                            workQueue.wait();
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
                     Runnable task = workQueue.poll();
                     task.run();
                 }
