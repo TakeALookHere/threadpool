@@ -1,0 +1,16 @@
+<suite name="WebServerSuite">
+
+    <test name="ThreadPoolExecutor">
+        <classes>
+            <class name="com.miskevich.threadpool.ThreadPoolExecutorTest">
+                <methods>
+                    <include name="testExecuteNull" />
+                    <include name="testExecuteStopped" />
+                    <include name="testExecute" />
+                    <include name="testShutdownNow" />
+                </methods>
+            </class>
+        </classes>
+    </test>
+
+</suite>

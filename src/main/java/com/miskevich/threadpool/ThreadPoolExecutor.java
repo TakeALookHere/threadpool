@@ -33,6 +33,9 @@ public class ThreadPoolExecutor implements Executor {
             }
 
             try {
+                while (threads.size() == workQueue.size()){
+                    workQueue.wait();
+                }
                 workQueue.put(task);
                 workQueue.notifyAll();
             } catch (InterruptedException e) {
@@ -71,6 +74,7 @@ public class ThreadPoolExecutor implements Executor {
                     }
                     Runnable task = workQueue.poll();
                     task.run();
+                    workQueue.notifyAll();
                 }
             }
         }

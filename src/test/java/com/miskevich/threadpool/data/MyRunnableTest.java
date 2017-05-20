@@ -1,4 +1,4 @@
-package com.miskevich.threadpool;
+package com.miskevich.threadpool.data;
 
 public class MyRunnableTest implements Runnable {
 
