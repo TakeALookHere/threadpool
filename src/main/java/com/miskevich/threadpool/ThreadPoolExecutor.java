@@ -8,18 +8,18 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class ThreadPoolExecutor implements Executor {
     private final BlockingQueue<Runnable> workQueue;
-    private final List<ThreadPoolTaskExecutor> threads = new ArrayList<>();
     private volatile boolean isStopped = false;
 
     public ThreadPoolExecutor(int aliveThreads) {
         this.workQueue = new LinkedBlockingQueue<>(aliveThreads);
 
         for (int i = 0; i < aliveThreads; i++) {
-            threads.add(new ThreadPoolTaskExecutor(workQueue));
-        }
+            ThreadPoolTaskExecutor threadPoolTaskExecutor = new ThreadPoolTaskExecutor();
 
-        for (ThreadPoolTaskExecutor thread : threads){
-            new Thread(thread).start();
+            List<ThreadPoolTaskExecutor> threads = new ArrayList<>();
+            threads.add(threadPoolTaskExecutor);
+
+            new Thread(threadPoolTaskExecutor).start();
         }
     }
 
@@ -33,7 +33,7 @@ public class ThreadPoolExecutor implements Executor {
             }
 
             try {
-                while (threads.size() == workQueue.size()){
+                while (0 == workQueue.remainingCapacity()){
                     workQueue.wait();
                 }
                 workQueue.put(task);
@@ -55,14 +55,9 @@ public class ThreadPoolExecutor implements Executor {
     }
 
     private class ThreadPoolTaskExecutor implements Runnable{
-        private final BlockingQueue<Runnable> workQueue;
-
-        ThreadPoolTaskExecutor(BlockingQueue<Runnable> workQueue) {
-            this.workQueue = workQueue;
-        }
-
         @Override
         public void run() {
+            Runnable task;
             while (!isStopped){
                 synchronized (workQueue){
                     while (workQueue.isEmpty()){
@@ -72,10 +67,10 @@ public class ThreadPoolExecutor implements Executor {
                             throw new RuntimeException(e);
                         }
                     }
-                    Runnable task = workQueue.poll();
-                    task.run();
+                    task = workQueue.poll();
                     workQueue.notifyAll();
                 }
+                task.run();
             }
         }
     }

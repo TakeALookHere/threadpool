@@ -1,7 +1,8 @@
 package com.miskevich.threadpool
 
-import com.miskevich.threadpool.data.MyRunnableTest
-import com.miskevich.threadpool.data.MyShutdownTest
+import com.miskevich.threadpool.data.MyRunnableTask
+import com.miskevich.threadpool.data.MyShutdownTask
+import com.miskevich.threadpool.data.MySlowTask
 import org.testng.annotations.Test
 
 class ThreadPoolExecutorTest extends GroovyTestCase {
@@ -21,7 +22,7 @@ class ThreadPoolExecutorTest extends GroovyTestCase {
         def threadPoolExecutor = new ThreadPoolExecutor(5)
         threadPoolExecutor.shutdown()
         String message = shouldFail(IllegalStateException){
-            threadPoolExecutor.execute(new MyRunnableTest())
+            threadPoolExecutor.execute(new MyRunnableTask())
         }
         assert message == "Thread pool is stopped"
         threadPoolExecutor.shutdownNow()
@@ -32,10 +33,10 @@ class ThreadPoolExecutorTest extends GroovyTestCase {
         def threadPoolExecutor = new ThreadPoolExecutor(5)
 
         for (int i = 0; i < 20; i++) {
-            threadPoolExecutor.execute(new MyRunnableTest())
+            threadPoolExecutor.execute(new MyRunnableTask())
         }
 
-        assertFalse(MyRunnableTest.counter == 1)
+        assertFalse(MyRunnableTask.counter == 1)
         threadPoolExecutor.shutdownNow()
     }
 
@@ -44,10 +45,29 @@ class ThreadPoolExecutorTest extends GroovyTestCase {
         def threadPoolExecutor = new ThreadPoolExecutor(5)
 
         for (int i = 0; i < 20; i++) {
-            threadPoolExecutor.execute(new MyShutdownTest())
+            threadPoolExecutor.execute(new MyShutdownTask())
         }
 
         def notRunTasks = threadPoolExecutor.shutdownNow()
-        assertEquals(notRunTasks.size(), 21 - MyShutdownTest.counter)
+        assertTrue(notRunTasks.size() != 0)
+    }
+
+    static void main(String[] args) {
+        def start = System.currentTimeMillis()
+
+        def threadPoolExecutor = new ThreadPoolExecutor(5)
+        for (int i = 0; i < 20; i++) {
+            threadPoolExecutor.execute(new MySlowTask())
+        }
+
+        while (20 != MySlowTask.counter){
+            Thread.sleep(100)
+        }
+
+        def duration = System.currentTimeMillis() - start
+        println duration
+        println MySlowTask.counter
+        assertTrue(duration < 12000)
+        threadPoolExecutor.shutdown()
     }
 }

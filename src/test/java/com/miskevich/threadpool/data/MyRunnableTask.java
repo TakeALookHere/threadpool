@@ -1,6 +1,6 @@
 package com.miskevich.threadpool.data;
 
-public class MyShutdownTest implements Runnable{
+public class MyRunnableTask implements Runnable {
 
     public static volatile int counter = 1;
 
