@@ -10,7 +10,6 @@ public class MySlowTask implements Runnable{
     public void run() {
 
         System.out.println("I'm number " + counter.incrementAndGet());
-        //counter++;
         try {
             Thread.sleep(3000);
         } catch (InterruptedException e) {

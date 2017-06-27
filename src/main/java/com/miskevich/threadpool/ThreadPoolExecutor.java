@@ -1,25 +1,20 @@
 package com.miskevich.threadpool;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executor;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 
-public class ThreadPoolExecutor implements Executor {
+public class ThreadPoolExecutor implements ExecutorService {
     private final BlockingQueue<Runnable> workQueue;
     private volatile boolean isStopped = false;
 
     public ThreadPoolExecutor(int aliveThreads) {
-        this.workQueue = new LinkedBlockingQueue<>(aliveThreads);
+        workQueue = new LinkedBlockingQueue<>(aliveThreads);
 
         for (int i = 0; i < aliveThreads; i++) {
-            ThreadPoolTaskExecutor threadPoolTaskExecutor = new ThreadPoolTaskExecutor();
-
-            List<ThreadPoolTaskExecutor> threads = new ArrayList<>();
-            threads.add(threadPoolTaskExecutor);
-
-            new Thread(threadPoolTaskExecutor).start();
+            ThreadPoolTaskWorker threadPoolTaskWorker = new ThreadPoolTaskWorker();
+            new Thread(threadPoolTaskWorker).start();
         }
     }
 
@@ -54,7 +49,57 @@ public class ThreadPoolExecutor implements Executor {
         return notRunTasks;
     }
 
-    private class ThreadPoolTaskExecutor implements Runnable{
+    public boolean isShutdown() {
+        //TODO
+        return false;
+    }
+
+    public boolean isTerminated() {
+        //TODO
+        return false;
+    }
+
+    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+        //TODO
+        return false;
+    }
+
+    public <T> Future<T> submit(Callable<T> task) {
+        //TODO
+        return null;
+    }
+
+    public <T> Future<T> submit(Runnable task, T result) {
+        //TODO
+        return null;
+    }
+
+    public Future<?> submit(Runnable task) {
+        //TODO
+        return null;
+    }
+
+    //optional
+    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) throws InterruptedException {
+        return null;
+    }
+
+    //optional
+    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException {
+        return null;
+    }
+
+    //optional
+    public <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
+        return null;
+    }
+
+    //optional
+    public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+        return null;
+    }
+
+    private class ThreadPoolTaskWorker implements Runnable{
         @Override
         public void run() {
             Runnable task;
