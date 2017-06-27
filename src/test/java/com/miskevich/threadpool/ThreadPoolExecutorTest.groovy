@@ -1,5 +1,6 @@
 package com.miskevich.threadpool
 
+import com.miskevich.threadpool.data.MyCallableTask
 import com.miskevich.threadpool.data.MyRunnableTask
 import com.miskevich.threadpool.data.MyShutdownTask
 import com.miskevich.threadpool.data.MySlowTask
@@ -10,7 +11,7 @@ class ThreadPoolExecutorTest extends GroovyTestCase {
     @Test
     void testExecuteNull() {
         def threadPoolExecutor = new ThreadPoolExecutor(5)
-        String message = shouldFail(NullPointerException){
+        String message = shouldFail(NullPointerException) {
             threadPoolExecutor.execute(null)
         }
         assert message == "Task can't be NULL"
@@ -21,7 +22,7 @@ class ThreadPoolExecutorTest extends GroovyTestCase {
     void testExecuteStopped() {
         def threadPoolExecutor = new ThreadPoolExecutor(5)
         threadPoolExecutor.shutdown()
-        String message = shouldFail(IllegalStateException){
+        String message = shouldFail(IllegalStateException) {
             threadPoolExecutor.execute(new MyRunnableTask())
         }
         assert message == "Thread pool is stopped"
@@ -60,7 +61,7 @@ class ThreadPoolExecutorTest extends GroovyTestCase {
             threadPoolExecutor.execute(new MySlowTask())
         }
 
-        while (20 != MySlowTask.counter){
+        while (20 != MySlowTask.counter) {
             Thread.sleep(100)
         }
 
@@ -69,5 +70,14 @@ class ThreadPoolExecutorTest extends GroovyTestCase {
         println MySlowTask.counter
         assertTrue(duration < 12000)
         threadPoolExecutor.shutdown()
+    }
+
+    @Test
+    void testSubmit() {
+        def threadPoolExecutor = new ThreadPoolExecutor(5)
+
+        for (int i = 0; i < 20; i++) {
+            threadPoolExecutor.submit(new MyCallableTask())
+        }
     }
 }

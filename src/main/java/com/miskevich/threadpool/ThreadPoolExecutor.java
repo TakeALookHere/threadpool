@@ -19,34 +19,56 @@ public class ThreadPoolExecutor implements ExecutorService {
     }
 
     public void execute(Runnable task) {
-        synchronized (workQueue){
-            if (task == null){
+        synchronized (workQueue) {
+            if (task == null) {
                 throw new NullPointerException("Task can't be NULL");
             }
-            if(isStopped){
+            if (isStopped) {
                 throw new IllegalStateException("Thread pool is stopped");
             }
 
             try {
-                while (0 == workQueue.remainingCapacity()){
+                while (0 == workQueue.remainingCapacity()) {
                     workQueue.wait();
                 }
                 workQueue.put(task);
                 workQueue.notifyAll();
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);            }
+                throw new RuntimeException(e);
+            }
         }
     }
 
-    public synchronized void shutdown(){
+    public synchronized void shutdown() {
         isStopped = true;
     }
 
-    public synchronized List<Runnable> shutdownNow(){
+    public synchronized List<Runnable> shutdownNow() {
         shutdown();
         List<Runnable> notRunTasks = new ArrayList<>();
         workQueue.drainTo(notRunTasks);
         return notRunTasks;
+    }
+
+    private class ThreadPoolTaskWorker implements Runnable {
+        @Override
+        public void run() {
+            Runnable task;
+            while (!isStopped) {
+                synchronized (workQueue) {
+                    while (workQueue.isEmpty()) {
+                        try {
+                            workQueue.wait();
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                    task = workQueue.poll();
+                    workQueue.notifyAll();
+                }
+                task.run();
+            }
+        }
     }
 
     public boolean isShutdown() {
@@ -66,7 +88,14 @@ public class ThreadPoolExecutor implements ExecutorService {
 
     public <T> Future<T> submit(Callable<T> task) {
         //TODO
+        //Callable to Runnable
+        RunnableFuture<T> futureTask = newTaskFor(task);
+        execute(futureTask);
         return null;
+    }
+
+    private <T> RunnableFuture<T> newTaskFor(Callable<T> task) {
+        return new FutureTask<>(task);
     }
 
     public <T> Future<T> submit(Runnable task, T result) {
@@ -97,26 +126,5 @@ public class ThreadPoolExecutor implements ExecutorService {
     //optional
     public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return null;
-    }
-
-    private class ThreadPoolTaskWorker implements Runnable{
-        @Override
-        public void run() {
-            Runnable task;
-            while (!isStopped){
-                synchronized (workQueue){
-                    while (workQueue.isEmpty()){
-                        try {
-                            workQueue.wait();
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                    task = workQueue.poll();
-                    workQueue.notifyAll();
-                }
-                task.run();
-            }
-        }
     }
 }
