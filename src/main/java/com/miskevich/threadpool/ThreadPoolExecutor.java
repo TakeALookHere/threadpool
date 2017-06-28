@@ -4,17 +4,23 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.ReentrantLock;
 
-public class ThreadPoolExecutor implements ExecutorService {
+public class ThreadPoolExecutor extends AbstractExecutorService implements ExecutorService {
     private final BlockingQueue<Runnable> workQueue;
     private volatile boolean isStopped = false;
+    private final List<Thread> threads = new ArrayList<>();
+    private final ReentrantLock mainLock = new ReentrantLock();
 
     public ThreadPoolExecutor(int aliveThreads) {
         workQueue = new LinkedBlockingQueue<>(aliveThreads);
 
         for (int i = 0; i < aliveThreads; i++) {
             ThreadPoolTaskWorker threadPoolTaskWorker = new ThreadPoolTaskWorker();
-            new Thread(threadPoolTaskWorker).start();
+            Thread thread = new Thread(threadPoolTaskWorker);
+            threads.add(thread);
+            thread.start();
+
         }
     }
 
@@ -72,40 +78,76 @@ public class ThreadPoolExecutor implements ExecutorService {
     }
 
     public boolean isShutdown() {
-        //TODO
-        return false;
+        return isStopped;
     }
 
     public boolean isTerminated() {
-        //TODO
-        return false;
+        if (!isStopped) {
+            return false;
+        }
+        for (Thread thread : threads) {
+            if (!"TERMINATED".equals(thread.getState().toString())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-        //TODO
-        return false;
+        long nanos = unit.toNanos(timeout);
+        final ReentrantLock mainLock = this.mainLock;
+        boolean isTerminated = false;
+        boolean check = true;
+        mainLock.lock();
+        try{
+//            while (isTerminated || nanos > 0) {
+
+                if (nanos <= 0) {
+                    return false;
+                }
+                for (int i = 0; i < threads.size(); i++) {
+                    System.out.println(threads.get(i).getState());
+                    if (!"TERMINATED".equals(threads.get(i).getState().toString())) {
+                        System.out.println(threads.get(i).getState());
+                        check = false;
+                        break;
+                    }
+                    if(i == threads.size() - 1 && check){
+                        isTerminated = true;
+                    }
+                }
+            //}
+        }finally {
+            mainLock.unlock();
+        }
+        return true;
     }
 
     public <T> Future<T> submit(Callable<T> task) {
-        //TODO
-        //Callable to Runnable
+        if (task == null) {
+            throw new NullPointerException("Task can't be NULL");
+        }
         RunnableFuture<T> futureTask = newTaskFor(task);
         execute(futureTask);
-        return null;
-    }
-
-    private <T> RunnableFuture<T> newTaskFor(Callable<T> task) {
-        return new FutureTask<>(task);
+        return futureTask;
     }
 
     public <T> Future<T> submit(Runnable task, T result) {
-        //TODO
-        return null;
+        if (task == null) {
+            throw new NullPointerException("Task can't be NULL");
+        }
+        RunnableFuture<T> futureTask = newTaskFor(task, result);
+        execute(futureTask);
+        return futureTask;
     }
 
     public Future<?> submit(Runnable task) {
-        //TODO
-        return null;
+        if (task == null) {
+            throw new NullPointerException("Task can't be NULL");
+        }
+        RunnableFuture<Void> futureTask = newTaskFor(task, null);
+        execute(futureTask);
+        return futureTask;
     }
 
     //optional
