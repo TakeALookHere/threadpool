@@ -13,6 +13,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService implements Execu
     private final List<Thread> threads = new ArrayList<>();
     private Lock lock = new ReentrantLock();
     private Condition termination = lock.newCondition();
+    private static final String TERMINATED = "TERMINATED";
 
     public ThreadPoolExecutor(int aliveThreads) {
         workQueue = new LinkedBlockingQueue<>(aliveThreads);
@@ -88,7 +89,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService implements Execu
             return false;
         }
         for (Thread thread : threads) {
-            if (!"TERMINATED".equals(thread.getState().toString())) {
+            if (!TERMINATED.equals(thread.getState().toString())) {
                 return false;
             }
         }
@@ -102,7 +103,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService implements Execu
             while (true) {
                 boolean check = true;
                 for (int i = 0; i < threads.size(); i++) {
-                    if (!"TERMINATED".equals(threads.get(i).getState().toString())) {
+                    if (!TERMINATED.equals(threads.get(i).getState().toString())) {
                         //I do not get why I have this warning because on the debug mode we can find
                         //that check variable is assigned to false
                         //and tests are correct for this case:
