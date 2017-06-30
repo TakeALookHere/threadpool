@@ -101,17 +101,11 @@ public class ThreadPoolExecutor extends AbstractExecutorService implements Execu
         lock.lock();
         try {
             while (true) {
-                boolean check = true;
                 for (int i = 0; i < threads.size(); i++) {
                     if (!TERMINATED.equals(threads.get(i).getState().toString())) {
-                        //I do not get why I have this warning because on the debug mode we can find
-                        //that check variable is assigned to false
-                        //and tests are correct for this case:
-                        // testAwaitTerminationTimeoutOccurs, testAwaitTerminationWorkFinished
-                        check = false;
                         break;
                     }
-                    if (i == threads.size() - 1 && check) {
+                    if (i == threads.size() - 1) {
                         return true;
                     }
                 }
