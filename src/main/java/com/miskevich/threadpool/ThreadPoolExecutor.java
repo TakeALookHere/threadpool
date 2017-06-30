@@ -1,16 +1,18 @@
 package com.miskevich.threadpool;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class ThreadPoolExecutor extends AbstractExecutorService implements ExecutorService {
     private final BlockingQueue<Runnable> workQueue;
     private volatile boolean isStopped = false;
     private final List<Thread> threads = new ArrayList<>();
-    private final ReentrantLock mainLock = new ReentrantLock();
+    private Lock lock = new ReentrantLock();
+    private Condition termination = lock.newCondition();
 
     public ThreadPoolExecutor(int aliveThreads) {
         workQueue = new LinkedBlockingQueue<>(aliveThreads);
@@ -57,7 +59,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService implements Execu
     }
 
     private class ThreadPoolTaskWorker implements Runnable {
-        @Override
+
         public void run() {
             Runnable task;
             while (!isStopped) {
@@ -95,32 +97,32 @@ public class ThreadPoolExecutor extends AbstractExecutorService implements Execu
 
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         long nanos = unit.toNanos(timeout);
-        final ReentrantLock mainLock = this.mainLock;
-        boolean isTerminated = false;
-        boolean check = true;
-        mainLock.lock();
-        try{
-//            while (isTerminated || nanos > 0) {
-
-                if (nanos <= 0) {
-                    return false;
-                }
+        lock.lock();
+        try {
+            while (true) {
+                boolean check = true;
                 for (int i = 0; i < threads.size(); i++) {
-                    System.out.println(threads.get(i).getState());
                     if (!"TERMINATED".equals(threads.get(i).getState().toString())) {
-                        System.out.println(threads.get(i).getState());
+                        //I do not get why I have this warning because on the debug mode we can find
+                        //that check variable is assigned to false
+                        //and tests are correct for this case:
+                        // testAwaitTerminationTimeoutOccurs, testAwaitTerminationWorkFinished
                         check = false;
                         break;
                     }
-                    if(i == threads.size() - 1 && check){
-                        isTerminated = true;
+                    if (i == threads.size() - 1 && check) {
+                        return true;
                     }
                 }
-            //}
-        }finally {
-            mainLock.unlock();
+                if (nanos <= 0) {
+                    return false;
+                }
+                nanos = termination.awaitNanos(nanos);
+            }
+        } finally {
+            lock.unlock();
         }
-        return true;
+
     }
 
     public <T> Future<T> submit(Callable<T> task) {
@@ -148,25 +150,5 @@ public class ThreadPoolExecutor extends AbstractExecutorService implements Execu
         RunnableFuture<Void> futureTask = newTaskFor(task, null);
         execute(futureTask);
         return futureTask;
-    }
-
-    //optional
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) throws InterruptedException {
-        return null;
-    }
-
-    //optional
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException {
-        return null;
-    }
-
-    //optional
-    public <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
-        return null;
-    }
-
-    //optional
-    public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-        return null;
     }
 }

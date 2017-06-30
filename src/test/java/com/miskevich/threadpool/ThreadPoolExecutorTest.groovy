@@ -1,16 +1,9 @@
 package com.miskevich.threadpool
 
-import com.miskevich.threadpool.data.MyCallableTask
-import com.miskevich.threadpool.data.MyRunnableForCallableTask
-import com.miskevich.threadpool.data.MyRunnableTask
-import com.miskevich.threadpool.data.MyShutdownTask
-import com.miskevich.threadpool.data.MySlowTask
+import com.miskevich.threadpool.data.*
 import org.testng.annotations.Test
 
-import java.util.concurrent.Callable
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
 
 class ThreadPoolExecutorTest extends GroovyTestCase {
 
@@ -94,7 +87,6 @@ class ThreadPoolExecutorTest extends GroovyTestCase {
 
         for (int i = 0; i < 20; i++) {
             Future<Integer> future = threadPoolExecutor.submit(new MyRunnableForCallableTask(), result)
-            System.out.println(future.get())
             assertEquals(55, future.get())
         }
     }
@@ -130,24 +122,32 @@ class ThreadPoolExecutorTest extends GroovyTestCase {
 
     @Test
     void testIsTerminatedTrue() {
-        def threadPoolExecutor = new ThreadPoolExecutor(5)
-        for (int i = 0; i < 20; i++) {
+        def threadPoolExecutor = new ThreadPoolExecutor(2)
+        for (int i = 0; i < 6; i++) {
             threadPoolExecutor.execute(new MyShutdownTask())
         }
         threadPoolExecutor.shutdown()
-        Thread.sleep(100)
+        Thread.sleep(11000)
         assertTrue(threadPoolExecutor.isTerminated())
     }
 
     @Test
-    void testAwaitTerminationTimeoutOccurs(){
-        def threadPoolExecutor = new ThreadPoolExecutor(5)
-        for (int i = 0; i < 20; i++) {
+    void testAwaitTerminationTimeoutOccurs() {
+        def threadPoolExecutor = new ThreadPoolExecutor(2)
+        for (int i = 0; i < 6; i++) {
             threadPoolExecutor.execute(new MyShutdownTask())
         }
         threadPoolExecutor.shutdown()
-        threadPoolExecutor.awaitTermination(10, TimeUnit.SECONDS)
+        assertFalse(threadPoolExecutor.awaitTermination(5000, TimeUnit.MILLISECONDS))
     }
 
-
+    @Test
+    void testAwaitTerminationWorkFinished() {
+        def threadPoolExecutor = new ThreadPoolExecutor(2)
+        for (int i = 0; i < 6; i++) {
+            threadPoolExecutor.execute(new MyShutdownTask())
+        }
+        threadPoolExecutor.shutdown()
+        assertTrue(threadPoolExecutor.awaitTermination(11000, TimeUnit.MILLISECONDS))
+    }
 }
